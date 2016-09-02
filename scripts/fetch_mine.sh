@@ -1,10 +1,10 @@
-curl -X POST "http://juztas.cern.ch:9200/job_history_crab3/_search?&size=1&pretty=true&q=*" -d '
+curl -X POST "http://juztas.cern.ch:9200/job_history_crab3/_search?&size=0&pretty=true&q=*" -d '
 {
   "aggs": {
     "runtime": {
       "filter": {
         "wildcard": {
-          "Workflow": "*matze*v30*"
+          "Workflow": "*matze*v32*"
         }
       },
       "aggs": {
@@ -18,3 +18,4 @@ curl -X POST "http://juztas.cern.ch:9200/job_history_crab3/_search?&size=1&prett
     }
   }
 }'
+exit $?

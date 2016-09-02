@@ -1,5 +1,5 @@
 .PHONY: all
-all: figures/runtime_mine.png figures/runtime_all.png
+all: figures/runtime_mine.png figures/runtime_calpas.png figures/runtime_all.png
 
 responses:
 	mkdir $@
