@@ -4,7 +4,7 @@ curl -X POST "http://juztas.cern.ch:9200/job_history_crab3/_search?&size=0&prett
     "runtime": {
       "filter": {
         "wildcard": {
-          "WorkflowRAW": "*matze*v32*"
+          "WorkflowRAW": "*matze*v33*"
         }
       },
       "aggs": {
