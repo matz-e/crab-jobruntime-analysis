@@ -55,3 +55,42 @@ ax5.set_xlim(0, 600)
 ax5.set_ylabel("runtime fraction")
 
 plt.savefig(args.output)
+
+basename, ext = args.output.rsplit('.', 1)
+
+plt.figure(figsize=(6, 5))
+
+ax6 = plt.subplot(111)
+ax6.grid(True)
+ax6.plot(edges, cummulative * 100. / grandtotal)
+ax6.set_xlim(0, 240)
+ax6.set_ylabel("jobs / %")
+ax6.set_xlabel("max job runtime / m")
+ax6.set_title("Fraction of jobs with maximum runtime")
+
+plt.savefig('{}_{}.{}'.format(basename, 'jobfraction', ext))
+
+plt.figure(figsize=(6, 5))
+
+ax7 = plt.subplot(111)
+ax7.grid(True)
+ax7.plot(edges, bins)
+ax7.set_ylabel("# jobs")
+ax7.set_yscale("log", nonposy='clip')
+ax7.set_xlabel("job runtime / m")
+ax7.set_xlim(0, 240)
+ax7.set_title("Job distribution w.r.t. runtime")
+
+plt.savefig('{}_{}.{}'.format(basename, 'jobruntime_log', ext))
+
+plt.figure(figsize=(6, 5))
+
+ax8 = plt.subplot(111)
+ax8.grid(True)
+ax8.plot(edges, bins)
+ax8.set_ylabel("# jobs")
+ax8.set_xlabel("job runtime / m")
+ax8.set_xlim(0, 240)
+ax8.set_title("Job distribution w.r.t. runtime")
+
+plt.savefig('{}_{}.{}'.format(basename, 'jobruntime', ext))
