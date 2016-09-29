@@ -1,4 +1,4 @@
-curl -X POST "http://juztas.cern.ch:9200/job_history_crab3/_search?&size=1&pretty=true&q=*" -d '
+curl -X POST "http://juztas.cern.ch:9200/job_history_crab3/_search?&size=0&pretty=true&q=*" -d '
 {
   "aggs": {
     "runtime": {
@@ -6,7 +6,7 @@ curl -X POST "http://juztas.cern.ch:9200/job_history_crab3/_search?&size=1&prett
         "and": [
           {
             "wildcard": {
-              "WorkflowRAW": "*"
+              "WorkflowRAW": "*matze*v36*"
             }
           },
           {
