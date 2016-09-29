@@ -58,13 +58,20 @@ plt.savefig(args.output)
 
 basename, ext = args.output.rsplit('.', 1)
 
-for xmax in (240, 400, 800):
+for xmax, binsize in [(240, 5), (400, 10), (800, 20), (1200, 30)]:
     plt.figure(figsize=(6, 5))
+
+    binning = range(0, xmax + 1, binsize)
+    ticks = [20] + range(60, xmax + 1, 60)
+
+    if xmax > 500:
+        ticks = range(0, xmax + 1, 120)[1:]
 
     ax6 = plt.subplot(111)
     ax6.grid(True)
     ax6.plot(edges, cummulative * 100. / grandtotal)
-    ax6.set_xlim(0, xmax)
+    ax6.set_xlim(20, xmax)
+    ax6.set_xticks(ticks)
     ax6.set_ylabel("jobs / %")
     ax6.set_xlabel("max job runtime / m")
     ax6.set_title("Fraction of jobs with maximum runtime")
@@ -75,11 +82,12 @@ for xmax in (240, 400, 800):
 
     ax7 = plt.subplot(111)
     ax7.grid(True)
-    ax7.plot(edges, bins)
+    ax7.hist(edges, binning, weights=bins)
     ax7.set_ylabel("# jobs")
     ax7.set_yscale("log", nonposy='clip')
     ax7.set_xlabel("job runtime / m")
     ax7.set_xlim(0, xmax)
+    ax7.set_xticks(ticks)
     ax7.set_title("Job distribution w.r.t. runtime")
 
     plt.savefig('{}_{}_{}.{}'.format(basename, 'jobruntime_log', xmax, ext))
@@ -88,10 +96,11 @@ for xmax in (240, 400, 800):
 
     ax8 = plt.subplot(111)
     ax8.grid(True)
-    ax8.plot(edges, bins)
+    ax8.hist(edges, binning, weights=bins)
     ax8.set_ylabel("# jobs")
     ax8.set_xlabel("job runtime / m")
     ax8.set_xlim(0, xmax)
+    ax8.set_xticks(ticks)
     ax8.set_title("Job distribution w.r.t. runtime")
 
     plt.savefig('{}_{}_{}.{}'.format(basename, 'jobruntime', xmax, ext))
