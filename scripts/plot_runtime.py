@@ -1,20 +1,34 @@
+from cycler import cycler
 import argparse
 import json
 import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
+import pickle
 
+matplotlib.rc('axes', prop_cycle=cycler('color', ['gray']))
 matplotlib.rc('axes.formatter', limits=(-3, 4))
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--dash", default=False, action="store_true")
 parser.add_argument("input")
 parser.add_argument("output")
 args = parser.parse_args()
 
-with open(args.input) as fd:
-    data = json.load(fd)
-    edges = [d['key'] for d in data["aggregations"]["runtime"]["runtime_inner"]["buckets"]]
-    bins = [d['doc_count'] for d in data["aggregations"]["runtime"]["runtime_inner"]["buckets"]]
+if args.dash:
+    with open(args.input, 'rb') as fd:
+        data = pickle.load(fd)
+        data /= 60
+        mx = np.max(data)
+        mn = np.min(data)
+        edges = range(int(mn), int(mx) + 2)
+        bins, _ = np.histogram(data, bins=edges)
+        edges = edges[:-1]
+else:
+    with open(args.input) as fd:
+        data = json.load(fd)
+        edges = [d['key'] for d in data["aggregations"]["runtime"]["runtime_inner"]["buckets"]]
+        bins = [d['doc_count'] for d in data["aggregations"]["runtime"]["runtime_inner"]["buckets"]]
 
 cummulative = np.cumsum(bins)
 grandtotal = np.sum(bins)
