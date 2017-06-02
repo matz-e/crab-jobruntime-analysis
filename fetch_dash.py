@@ -60,10 +60,13 @@ def runtimes(tasks):
 
 
 def save_plots(tasks, runtimes, outdir):
+    sns.set_style("white")
+
     p = sns.distplot([d.total_seconds() / 60 for d in tasks.finished - tasks.submitted],
                      norm_hist=False,
                      rug=True, kde=False,
                      axlabel='Task Completion Time')
+    sns.despine()
     p.get_figure().savefig(outdir + '/task-completion.png')
     p.get_figure().savefig(outdir + '/task-completion.pdf')
     p.get_figure().clear()
@@ -72,6 +75,7 @@ def save_plots(tasks, runtimes, outdir):
                      norm_hist=False,
                      rug=True, kde=False,
                      axlabel='Runtime')
+    sns.despine()
     p.get_figure().savefig(outdir + '/runtime.png')
     p.get_figure().savefig(outdir + '/runtime.pdf')
     p.get_figure().clear()
@@ -79,6 +83,7 @@ def save_plots(tasks, runtimes, outdir):
                      norm_hist=False,
                      rug=True, kde=False,
                      axlabel='Probe Runtime')
+    sns.despine()
     p.get_figure().savefig(outdir + '/runtime-probe.png')
     p.get_figure().savefig(outdir + '/runtime-probe.pdf')
     p.get_figure().clear()
@@ -87,15 +92,17 @@ def save_plots(tasks, runtimes, outdir):
                      rug=True, kde=False,
                      axlabel='Processing Runtime')
     ptimes = jobs[jobs.kind == Kind.PROCESSING].sort_values('runtime').reset_index()
-    ptimes['quantile'] = (ptimes.index + 1) / len(ptimes)
-    ptimes.plot(x='runtime', y='quantile', ax=p.axes, secondary_y=True)
-    p.axes.right_ax.set_ylim(0, 1)
+    ptimes['percentile'] = (ptimes.index + 1) * 100 / len(ptimes)
+    ptimes.plot(x='runtime', y='percentile', ax=p.axes, secondary_y=True)
+    p.axes.right_ax.set_ylim(0, 100)
     p.axes.right_ax.set_ylabel('percentile')
+    sns.despine(right=False)
     p.get_figure().savefig(outdir + '/runtime-processing.png')
     p.get_figure().savefig(outdir + '/runtime-processing.pdf')
     p.get_figure().clear()
 
     p = sns.violinplot(y='runtime', x='task', data=jobs)
+    sns.despine()
     p.get_figure().savefig(outdir + '/runtime-per-task.png')
     p.get_figure().savefig(outdir + '/runtime-per-task.pdf')
     p.get_figure().clear()
@@ -105,18 +112,19 @@ def save_plots(tasks, runtimes, outdir):
                          norm_hist=False,
                          rug=True, kde=False,
                          axlabel='Tail Runtime')
+        sns.despine()
         p.get_figure().savefig(outdir + '/runtime-tail.png')
         p.get_figure().savefig(outdir + '/runtime-tail.pdf')
         p.get_figure().clear()
 
-        with sns.axes_style("white"):
-            p = sns.jointplot(x="processingjobs",
-                              y="tailjobs",
-                              data=tasks)
-            p.set_axis_labels("# of processing jobs", "# of tail jobs")
-            p.fig.savefig(outdir + '/task-jobratio.png')
-            p.fig.savefig(outdir + '/task-jobratio.pdf')
-            p.fig.clear()
+        p = sns.jointplot(x="processingjobs",
+                          y="tailjobs",
+                          data=tasks)
+        p.set_axis_labels("# of processing jobs", "# of tail jobs")
+        sns.despine()
+        p.fig.savefig(outdir + '/task-jobratio.png')
+        p.fig.savefig(outdir + '/task-jobratio.pdf')
+        p.fig.clear()
 
 
 if __name__ == '__main__':
