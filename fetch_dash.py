@@ -31,11 +31,13 @@ def tasks(pattern, user, start, end):
     r = requests.get(url, params=params, headers=headers)
     data = r.json()
     for task in data['antasks']:
+        print(f"Found task {task['TASKNAME']}")
         yield task['TASKNAME'], dateutil.parser.parse(task['TaskCreatedTS'])
 
 
 def runtimes(tasks):
     for taskname in tasks.name:
+        print(f"Processing task {taskname}")
         params = {
             'taskname': taskname,
             'what': '',
@@ -43,10 +45,17 @@ def runtimes(tasks):
         }
         r = requests.get(url, params=params, headers=headers)
         taskdata = r.json()
+        failed = 0
+        leftover = 0
         for job in taskdata['taskjobs'][0]:
-            if job['STATUS'] != 'finished':
-                continue
             jid = job['EventRange']
+            if job['STATUS'] == 'failed' and '-' in jid and not jid.startswith('0'):
+                print(f"Failed: {jid}")
+                failed += 1
+                continue
+            elif job['STATUS'] != 'finished':
+                leftover += 1
+                continue
             runtime = job['WrapWC'] / 60
             endtime = dateutil.parser.parse(job['finished'], dayfirst=True)
             if jid.startswith('0'):
@@ -57,6 +66,8 @@ def runtimes(tasks):
                 kind = Kind.PROCESSING
 
             yield taskname, jid, kind, runtime, endtime
+        if leftover == 0 and failed > 0:
+            print("Task completed")
 
 
 def save_plots(tasks, runtimes, outdir):
