@@ -1,10 +1,15 @@
 import argparse
 import dateutil.parser
 import enum
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import requests
 import seaborn as sns
+
+
+mpl.rcParams['savefig.bbox'] = 'tight'
 
 
 class Kind(enum.Enum):
@@ -112,11 +117,18 @@ def save_plots(tasks, runtimes, outdir):
     p.get_figure().savefig(outdir + '/runtime-processing.pdf')
     p.get_figure().clear()
 
-    p = sns.violinplot(y='runtime', x='task', data=jobs)
+    plt.close()
+    oldsize = mpl.rcParams['figure.figsize']
+    mpl.rcParams['figure.figsize'] = (oldsize[0] * 2, oldsize[1])
+    p = sns.boxplot(y='runtime', x='task', data=jobs[jobs.kind == Kind.PROCESSING])
+    p.set(xticklabels=[])
     sns.despine()
-    p.get_figure().savefig(outdir + '/runtime-per-task.png')
-    p.get_figure().savefig(outdir + '/runtime-per-task.pdf')
+    sns.despine(bottom=True)
+    p.get_figure().savefig(outdir + '/runtime-processing-per-task.png')
+    p.get_figure().savefig(outdir + '/runtime-processing-per-task.pdf')
     p.get_figure().clear()
+    mpl.rcParams['figure.figsize'] = oldsize
+    plt.close()
 
     if len(jobs[jobs.kind == Kind.TAIL]) > 0:
         p = sns.distplot(jobs[jobs.kind == Kind.TAIL].runtime,
