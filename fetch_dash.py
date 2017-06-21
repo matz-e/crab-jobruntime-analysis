@@ -5,6 +5,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
+import pickle
 import requests
 import seaborn as sns
 
@@ -158,21 +159,31 @@ if __name__ == '__main__':
                         help='start timestamp for search')
     parser.add_argument('--user', default='Matthias Wolf',
                         help='user to query the database for')
+    parser.add_argument('--update', default=False, action='store_true',
+                        help='update cached data')
     parser.add_argument('pattern',
                         help='pattern to use when querying the database')
     parser.add_argument('outdir',
                         help='directory to save the output to')
     args = parser.parse_args()
 
-    tasks = pd.DataFrame(tasks(args.pattern, args.user, args.start, args.end))
-    tasks.columns = 'name submitted'.split()
+    cachefile = args.outdir + '.pkl'
+    if args.update or not os.path.exists(cachefile):
+        tasks = pd.DataFrame(tasks(args.pattern, args.user, args.start, args.end))
+        tasks.columns = 'name submitted'.split()
 
-    jobs = pd.DataFrame(runtimes(tasks))
-    jobs.columns = 'task jobid kind runtime endtime'.split()
+        jobs = pd.DataFrame(runtimes(tasks))
+        jobs.columns = 'task jobid kind runtime endtime'.split()
 
-    tasks['finished'] = [jobs[jobs.task == t].endtime.max() for t in tasks.name]
-    tasks['tailjobs'] = [len(jobs[(jobs.task == t) & (jobs.kind == Kind.TAIL)]) for t in tasks.name]
-    tasks['processingjobs'] = [len(jobs[(jobs.task == t) & (jobs.kind == Kind.PROCESSING)]) for t in tasks.name]
+        tasks['finished'] = [jobs[jobs.task == t].endtime.max() for t in tasks.name]
+        tasks['tailjobs'] = [len(jobs[(jobs.task == t) & (jobs.kind == Kind.TAIL)]) for t in tasks.name]
+        tasks['processingjobs'] = [len(jobs[(jobs.task == t) & (jobs.kind == Kind.PROCESSING)]) for t in tasks.name]
+
+        with open(cachefile, 'wb') as fd:
+            pickle.dump((jobs, tasks), fd)
+    else:
+        with open(cachefile, 'rb') as fd:
+            jobs, tasks = pickle.load(fd)
 
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
