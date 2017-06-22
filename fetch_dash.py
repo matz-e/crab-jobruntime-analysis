@@ -3,11 +3,14 @@ import dateutil.parser
 import enum
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import operator
 import os
 import pandas as pd
 import pickle
 import requests
 import seaborn as sns
+
+from bs4 import BeautifulSoup
 
 
 mpl.rcParams['savefig.bbox'] = 'tight'
@@ -25,7 +28,22 @@ headers = {
 url = 'http://dashb-cms-job.cern.ch/dashboard/request.py/antasktable'
 
 
-def tasks(pattern, user, start, end):
+def topusers(count):
+    url = 'http://dashb-cms-job-task.cern.ch/dashboard/request.py/userssummary?range=30day'
+    r = requests.get(url)
+    data = BeautifulSoup(r.text, 'html.parser')
+    users = []
+    for row in data.find_all('tr')[2:]:
+        cols = row.find_all('td')
+        users.append({
+            'user': cols[0].text,
+            'jobs': int(cols[5].text)
+        })
+    users = sorted(users, key=operator.itemgetter('jobs'), reverse=True)
+    return [d['user'] for d in users[:count]]
+
+
+def usertasks(pattern, user, start, end):
     params = {
         'user': user,
         'task': '',
@@ -35,8 +53,14 @@ def tasks(pattern, user, start, end):
         'pattern': pattern
     }
     r = requests.get(url, params=params, headers=headers)
-    data = r.json()
+    try:
+        data = r.json()
+    except Exception:
+        print(f'Failed to get data for user {user}')
+        return
     for task in data['antasks']:
+        if task['Executable'] != 'cmsRun' or task['TaskType'] != 'analysis':
+            continue
         print(f"Found task {task['TASKNAME']}")
         yield task['TASKNAME'], dateutil.parser.parse(task['TaskCreatedTS'])
 
@@ -162,7 +186,9 @@ if __name__ == '__main__':
                         help='start timestamp for search')
     parser.add_argument('--end', default='2019-01-01 00:00',
                         help='start timestamp for search')
-    parser.add_argument('--user', default='Matthias Wolf',
+    parser.add_argument('--topusers', default=None, type=int, metavar='N',
+                        help='get tasks for top N users')
+    parser.add_argument('--user', default=['Matthias Wolf'], nargs='*',
                         help='user to query the database for')
     parser.add_argument('--update', default=False, action='store_true',
                         help='update cached data')
@@ -172,9 +198,19 @@ if __name__ == '__main__':
                         help='directory to save the output to')
     args = parser.parse_args()
 
+    if args.topusers is not None:
+        args.user = topusers(args.topusers)
+        print(f'Getting data for users {args.user}')
+
     cachefile = args.outdir + '.pkl'
     if args.update or not os.path.exists(cachefile):
-        tasks = pd.DataFrame(tasks(args.pattern, args.user, args.start, args.end))
+        tasks = None
+        for user in args.user:
+            ts = pd.DataFrame(usertasks(args.pattern, user, args.start, args.end))
+            if tasks is None:
+                tasks = ts
+            else:
+                tasks = pd.concat([tasks, ts])
         tasks.columns = 'name submitted'.split()
 
         jobs = pd.DataFrame(runtimes(tasks))
