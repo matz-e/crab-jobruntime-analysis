@@ -52,6 +52,7 @@ def usertasks(pattern, user, start, end):
         'timerange': '',
         'pattern': pattern
     }
+    print(f'Getting tasks submitted by {user}')
     r = requests.get(url, params=params, headers=headers)
     try:
         data = r.json()
@@ -62,10 +63,11 @@ def usertasks(pattern, user, start, end):
         if task['Executable'] != 'cmsRun' or task['TaskType'] != 'analysis':
             continue
         print(f"Found task {task['TASKNAME']}")
-        yield task['TASKNAME'], dateutil.parser.parse(task['TaskCreatedTS'])
+        yield user, task['TASKNAME'], dateutil.parser.parse(task['TaskCreatedTS'])
 
 
 def runtimes(tasks):
+    print(f"Getting data for {len(tasks)} tasks")
     for taskname in tasks.name:
         print(f"Processing task {taskname}")
         params = {
@@ -78,7 +80,7 @@ def runtimes(tasks):
         failed = 0
         leftover = 0
         for job in taskdata['taskjobs'][0]:
-            jid = job['EventRange']
+            jid = str(job['EventRange'])
             if job['STATUS'] == 'failed' and '-' in jid and not jid.startswith('0'):
                 print(f"Failed: {jid}")
                 failed += 1
@@ -103,14 +105,17 @@ def runtimes(tasks):
 def save_plots(tasks, runtimes, outdir):
     sns.set_style("white")
 
-    p = sns.distplot([d.total_seconds() / 60 for d in tasks.finished - tasks.submitted],
-                     norm_hist=False,
-                     rug=True, kde=False,
-                     axlabel='Task Completion Time')
-    sns.despine()
-    p.get_figure().savefig(outdir + '/task-completion.png')
-    p.get_figure().savefig(outdir + '/task-completion.pdf')
-    p.get_figure().clear()
+    try:
+        p = sns.distplot([d.total_seconds() / 60 for d in tasks.finished - tasks.submitted],
+                         norm_hist=False,
+                         rug=True, kde=False,
+                         axlabel='Task Completion Time')
+        sns.despine()
+        p.get_figure().savefig(outdir + '/task-completion.png')
+        p.get_figure().savefig(outdir + '/task-completion.pdf')
+        p.get_figure().clear()
+    except:
+        pass
 
     p = sns.distplot(jobs.runtime,
                      norm_hist=False,
@@ -120,14 +125,17 @@ def save_plots(tasks, runtimes, outdir):
     p.get_figure().savefig(outdir + '/runtime.png')
     p.get_figure().savefig(outdir + '/runtime.pdf')
     p.get_figure().clear()
-    p = sns.distplot(jobs[jobs.kind == Kind.PROBE].runtime,
-                     norm_hist=False,
-                     rug=True, kde=False,
-                     axlabel='Probe Runtime')
-    sns.despine()
-    p.get_figure().savefig(outdir + '/runtime-probe.png')
-    p.get_figure().savefig(outdir + '/runtime-probe.pdf')
-    p.get_figure().clear()
+
+    if len(jobs[jobs.kind == Kind.PROBE]) > 0:
+        p = sns.distplot(jobs[jobs.kind == Kind.PROBE].runtime,
+                         norm_hist=False,
+                         rug=True, kde=False,
+                         axlabel='Probe Runtime')
+        sns.despine()
+        p.get_figure().savefig(outdir + '/runtime-probe.png')
+        p.get_figure().savefig(outdir + '/runtime-probe.pdf')
+        p.get_figure().clear()
+
     p = sns.distplot(jobs[jobs.kind == Kind.PROCESSING].runtime,
                      norm_hist=False,
                      rug=True, kde=False,
@@ -185,7 +193,7 @@ if __name__ == '__main__':
     parser.add_argument('--start', default='2017-01-01 00:00',
                         help='start timestamp for search')
     parser.add_argument('--end', default='2019-01-01 00:00',
-                        help='start timestamp for search')
+                        help='final timestamp for search')
     parser.add_argument('--topusers', default=None, type=int, metavar='N',
                         help='get tasks for top N users')
     parser.add_argument('--user', default=['Matthias Wolf'], nargs='*',
@@ -207,11 +215,13 @@ if __name__ == '__main__':
         tasks = None
         for user in args.user:
             ts = pd.DataFrame(usertasks(args.pattern, user, args.start, args.end))
+            if len(ts) == 0:
+                continue
+            ts.columns = 'user name submitted'.split()
             if tasks is None:
                 tasks = ts
             else:
-                tasks = pd.concat([tasks, ts])
-        tasks.columns = 'name submitted'.split()
+                tasks = tasks.append(ts)
 
         jobs = pd.DataFrame(runtimes(tasks))
         jobs.columns = 'task jobid kind runtime endtime'.split()
