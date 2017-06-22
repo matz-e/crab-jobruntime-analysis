@@ -122,7 +122,7 @@ def save_plots(tasks, runtimes, outdir):
     oldsize = mpl.rcParams['figure.figsize']
     mpl.rcParams['figure.figsize'] = (oldsize[0] * 2, oldsize[1])
     ordered = tasks.sort_values('processingjobs').reset_index()
-    ordered['plt'] = range(len(ordered))  # (1, len(ordered) + 1)
+    ordered['plt'] = range(len(ordered))
     fig, ax = plt.subplots()
     twin = ax.twinx()
     ordered.plot(x='plt', y='processingjobs', ax=twin)
