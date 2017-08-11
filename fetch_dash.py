@@ -102,7 +102,7 @@ def runtimes(tasks):
             print("Task completed")
 
 
-def save_plots(tasks, runtimes, outdir):
+def save_plots(jobs, tasks, runtimes, outdir):
     sns.set_style("white")
 
     try:
@@ -200,6 +200,8 @@ if __name__ == '__main__':
                         help='user to query the database for')
     parser.add_argument('--update', default=False, action='store_true',
                         help='update cached data')
+    parser.add_argument('--max-runtime', default=None, type=int, metavar='M',
+                        help='limit the displayed runtime to M')
     parser.add_argument('pattern',
                         help='pattern to use when querying the database')
     parser.add_argument('outdir',
@@ -239,4 +241,7 @@ if __name__ == '__main__':
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
-    save_plots(tasks, runtimes, args.outdir)
+    if args.max_runtime:
+        jobs = jobs[jobs.runtime < args.max_runtime]
+
+    save_plots(jobs, tasks, runtimes, args.outdir)
