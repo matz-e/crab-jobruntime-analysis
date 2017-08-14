@@ -15,6 +15,9 @@ from bs4 import BeautifulSoup
 
 mpl.rcParams['savefig.bbox'] = 'tight'
 
+sns.set_style('white', {'font.family': 'Source Sans Pro'})
+sns.set_context('paper', font_scale=1.5)
+
 
 class Kind(enum.Enum):
     PROBE = 1
@@ -103,14 +106,12 @@ def runtimes(tasks):
 
 
 def save_plots(jobs, tasks, runtimes, outdir):
-    sns.set_style("white")
-
     try:
         p = sns.distplot([d.total_seconds() / 60 for d in tasks.finished - tasks.submitted],
                          norm_hist=False,
-                         rug=True, kde=False,
-                         axlabel='Task Completion Time')
+                         rug=True, kde=False)
         sns.despine()
+        p.set_axis_labels("Task Completion Time", "Tasks")
         p.get_figure().savefig(outdir + '/task-completion.png')
         p.get_figure().savefig(outdir + '/task-completion.pdf')
         p.get_figure().clear()
@@ -129,22 +130,25 @@ def save_plots(jobs, tasks, runtimes, outdir):
     if len(jobs[jobs.kind == Kind.PROBE]) > 0:
         p = sns.distplot(jobs[jobs.kind == Kind.PROBE].runtime,
                          norm_hist=False,
-                         rug=True, kde=False,
-                         axlabel='Probe Runtime')
+                         rug=True, kde=False)
         sns.despine()
+        p.axes.set_xlabel("Probe Runtime")
+        p.axes.set_ylabel("Jobs")
         p.get_figure().savefig(outdir + '/runtime-probe.png')
         p.get_figure().savefig(outdir + '/runtime-probe.pdf')
         p.get_figure().clear()
 
     p = sns.distplot(jobs[jobs.kind == Kind.PROCESSING].runtime,
                      norm_hist=False,
-                     rug=True, kde=False,
-                     axlabel='Processing Runtime')
+                     rug=True, kde=False)
     ptimes = jobs[jobs.kind == Kind.PROCESSING].sort_values('runtime').reset_index()
     ptimes['percentile'] = (ptimes.index + 1) * 100 / len(ptimes)
-    ptimes.plot(x='runtime', y='percentile', ax=p.axes, secondary_y=True)
+    ptimes.plot(x='runtime', y='percentile', ax=p.axes,
+                secondary_y=True, legend=False)
     p.axes.right_ax.set_ylim(0, 100)
-    p.axes.right_ax.set_ylabel('percentile')
+    p.axes.right_ax.set_ylabel('Percentile')
+    p.axes.set_xlabel("Processing Runtime")
+    p.axes.set_ylabel("Jobs")
     sns.despine(right=False)
     p.get_figure().savefig(outdir + '/runtime-processing.png')
     p.get_figure().savefig(outdir + '/runtime-processing.pdf')
@@ -157,11 +161,13 @@ def save_plots(jobs, tasks, runtimes, outdir):
     ordered['plt'] = range(len(ordered))
     fig, ax = plt.subplots()
     twin = ax.twinx()
-    ordered.plot(x='plt', y='processingjobs', ax=twin)
+    ordered.plot(x='plt', y='processingjobs', ax=twin, legend=False)
     twin.set_ylabel('Number of processing jobs')
     p = sns.boxplot(y='runtime', x='task', ax=ax, data=jobs[jobs.kind == Kind.PROCESSING], order=ordered.name)
     p.set(xticklabels=[])
     sns.despine(bottom=True, right=False)
+    p.axes.set_xlabel("Task")
+    p.axes.set_ylabel("Runtime")
     p.get_figure().savefig(outdir + '/runtime-processing-per-task.png')
     p.get_figure().savefig(outdir + '/runtime-processing-per-task.pdf')
     p.get_figure().clear()
@@ -171,8 +177,9 @@ def save_plots(jobs, tasks, runtimes, outdir):
     if len(jobs[jobs.kind == Kind.TAIL]) > 0:
         p = sns.distplot(jobs[jobs.kind == Kind.TAIL].runtime,
                          norm_hist=False,
-                         rug=True, kde=False,
-                         axlabel='Tail Runtime')
+                         rug=True, kde=False)
+        p.axes.set_xlabel("Tail Runtime")
+        p.axes.set_ylabel("Jobs")
         sns.despine()
         p.get_figure().savefig(outdir + '/runtime-tail.png')
         p.get_figure().savefig(outdir + '/runtime-tail.pdf')
@@ -181,7 +188,7 @@ def save_plots(jobs, tasks, runtimes, outdir):
         p = sns.jointplot(x="processingjobs",
                           y="tailjobs",
                           data=tasks)
-        p.set_axis_labels("# of processing jobs", "# of tail jobs")
+        p.set_axis_labels("Processing Jobs", "Tail Jobs")
         sns.despine()
         p.fig.savefig(outdir + '/task-jobratio.png')
         p.fig.savefig(outdir + '/task-jobratio.pdf')
