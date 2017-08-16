@@ -116,7 +116,7 @@ def save_plots(jobs, tasks, runtimes, outdir):
         p.get_figure().savefig(outdir + '/task-completion.pdf')
         p.get_figure().clear()
     except:
-        pass
+        plt.close()
 
     p = sns.distplot(jobs.runtime,
                      norm_hist=False,
